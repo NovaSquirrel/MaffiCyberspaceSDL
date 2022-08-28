@@ -4,6 +4,7 @@ extern int PlayerX;
 extern int PlayerY;
 
 // For flood fill
+int tiles_to_visit;
 uint8_t playfield_visited[PLAYFIELD_W][PLAYFIELD_H];
 
 void levelrect(int x, int y, int w, int h, int type) {
@@ -28,6 +29,7 @@ void floodfill_playfield(int x, int y) {
 	if(playfield_visited[x][y] || playfield[x][y] == T_WALL || playfield[x][y] == T_EMPTY || x < 0 || y < 0 || x >= PLAYFIELD_W || y >= PLAYFIELD_H)
 		return;
 	playfield_visited[x][y] = 1;
+	tiles_to_visit--;
 	floodfill_playfield(x-1, y);
 	floodfill_playfield(x+1, y);
 	floodfill_playfield(x, y-1);
@@ -95,12 +97,12 @@ void read_level(uint8_t *level_template) {
 		}
 
 		// Generate walls
-		for(int i=0; i<PLAYFIELD_W/2; i++) {
-			for(int j=0; j<PLAYFIELD_H/2; j++) {
+		for(int x=0; x<PLAYFIELD_W/2; x++) {
+			for(int y=0; y<PLAYFIELD_H/2; y++) {
 				if(Random(4) == 0)
 					continue;
-				int dotX = i * 2 + 1;
-				int dotY = j * 2 + 1;
+				int dotX = x * 2 + 1;
+				int dotY = y * 2 + 1;
 				if(playfield[dotX][dotY] != T_FLOOR)
 					continue;
 				playfield[dotX][dotY] = T_WALL;
@@ -117,17 +119,27 @@ void read_level(uint8_t *level_template) {
 			}
 		}
 
+		tiles_to_visit = 0;
+		for(int x=0; x<PLAYFIELD_W; x++) {
+			for(int y=0; y<PLAYFIELD_H; y++) {
+				if(playfield[x][y] == T_FLOOR) {
+					tiles_to_visit++;
+				}
+			}
+		}
+		printf("Want to visit %d tiles\n", tiles_to_visit);
+
 		// Make sure you can traverse the level
 		playfield[player_start_x][player_start_y] = T_FLOOR;
 
 		memset(&playfield_visited, 0, sizeof(playfield_visited));
 		floodfill_playfield(player_start_x, player_start_y);
 
+		printf("%d tiles left after flood fill\n", tiles_to_visit);
+
 		for(int x=0; x<PLAYFIELD_W; x++) {
 			for(int y=0; y<PLAYFIELD_H; y++) {
 				if(playfield[x][y] == T_FLOOR && !playfield_visited[x][y]) {
-					playfield[x][y] = T_HEART;
-
 					int used_directions[4] = {0, 0, 0, 0};
 					while(!used_directions[0] || !used_directions[1] || !used_directions[2] || !used_directions[3]) {
 						int direction = Random(4);
@@ -136,18 +148,22 @@ void read_level(uint8_t *level_template) {
 						used_directions[direction] = 1;
 						if(direction == 0 && x >= 2 && playfield_visited[x-2][y]) {
 							playfield[x-1][y] = T_FLOOR;
+							tiles_to_visit++;
 							floodfill_playfield(x-1, y);
 							break;
 						} else if(direction == 1 && y >= 2 && playfield_visited[x][y-2]) {
 							playfield[x][y-1] = T_FLOOR;
+							tiles_to_visit++;
 							floodfill_playfield(x, y-1);
 							break;
 						} else if(direction == 2 && x <= PLAYFIELD_W-3 && playfield_visited[x+2][y]) {
 							playfield[x+1][y] = T_FLOOR;
+							tiles_to_visit++;
 							floodfill_playfield(x+1, y);
 							break;
 						} else if(direction == 3 && y <= PLAYFIELD_H-3 && playfield_visited[x][y+2]) {
 							playfield[x][y+1] = T_FLOOR;
+							tiles_to_visit++;
 							floodfill_playfield(x, y+1);
 							break;
 						}
@@ -157,40 +173,17 @@ void read_level(uint8_t *level_template) {
 				}
 			}
 		}
+		printf("%d tiles left to visit\n", tiles_to_visit);
+
 		fflush(stdout);
 
 		level_is_good = 1;
 	}
 
-/*
-	for(int i=1; i<PLAYFIELD_W-1; i++) {
-		for(int j=1; j<PLAYFIELD_H-1; j++) {
-			if(playfield[i][j] == T_FLOOR) {
-				if((rand()&3) == 0)
-					playfield[i][j] = T_BRICKS;
-			}
-		}
-	}
-*/
+	playfield[PLAYFIELD_W-1][0] = T_WALL;
+	playfield[PLAYFIELD_W-1][PLAYFIELD_H-1] = T_WALL;
+	playfield[0][PLAYFIELD_H-1] = T_WALL;
 
-/*
-	for(int i=0; i<50; i++) {
-		int x = rand()&PLAYFIELD_MASK_W;
-		int y = rand()&PLAYFIELD_MASK_H;
-		if(playfield[x][y] == T_EMPTY)
-			continue;
-		for(int j=0; j<10; j++) {
-			int oX = (rand()%((rand()%5)+1))-5/2;
-			int oY = (rand()%((rand()%5)+1))-5/2;
-			oX = (x + oX) & PLAYFIELD_MASK_W;
-			oY = (y + oY) & PLAYFIELD_MASK_H;
-			if(playfield[oX][oY] == T_FLOOR)
-				playfield[oX][oY] = T_BRICKS;
-		}
-	}
-*/
-
-/*
 	// Put a border on everything that needs it
 	for(int i=1; i<PLAYFIELD_W-1; i++) {
 		for(int j=1; j<PLAYFIELD_H-1; j++) {
@@ -203,7 +196,6 @@ void read_level(uint8_t *level_template) {
 			}
 		}
 	}
-*/
 
 	// Add bricks?
 	for(int x=1; x<PLAYFIELD_W-1; x++) {

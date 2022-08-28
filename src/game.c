@@ -142,13 +142,18 @@ void run_game() {
 	int TargetCameraX = PlayerX - (ScreenWidth/ScreenZoom/2);
 	if(TargetCameraX < 0)
 		TargetCameraX = 0;
-	if(TargetCameraX > (PLAYFIELD_W-10)*16)
-		TargetCameraX = (PLAYFIELD_W-10)*16;
+//	if(TargetCameraX > (PLAYFIELD_W-10)*16)
+//		TargetCameraX = (PLAYFIELD_W-10)*16;
+	if(TargetCameraX > (PLAYFIELD_W-(ScreenWidth/ScreenZoom/16))*16)
+		TargetCameraX = (PLAYFIELD_W-(ScreenWidth/ScreenZoom/16))*16;
+
 	int TargetCameraY = PlayerY - (ScreenHeight/ScreenZoom/2);
 	if(TargetCameraY < 0)
 		TargetCameraY = 0;
-	if(TargetCameraY > (PLAYFIELD_H-9)*16)
-		TargetCameraY = (PLAYFIELD_H-9)*16;
+//	if(TargetCameraY > (PLAYFIELD_H-9)*16)
+//		TargetCameraY = (PLAYFIELD_H-9)*16;
+	if(TargetCameraY > (PLAYFIELD_H-(ScreenHeight/ScreenZoom/16))*16)
+		TargetCameraY = (PLAYFIELD_H-(ScreenHeight/ScreenZoom/16))*16;
 
 	CameraX += (TargetCameraX - CameraX)/4.0;
 	CameraY += (TargetCameraY - CameraY)/4.0;
