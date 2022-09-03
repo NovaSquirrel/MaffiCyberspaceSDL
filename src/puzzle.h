@@ -33,6 +33,8 @@ enum TileType {
 enum LevelCommand {
 	LC_END,
 	LC_ISLAND,         // x y
+	LC_ISLAND_SMALL,   // x y
+	LC_ISLAND_TINY,    // x y
 	LC_CUSTOM_ISLAND,  // x y w h offx offy tries
 	LC_RECT,           // x y w h
 	LC_TYPE,           // type

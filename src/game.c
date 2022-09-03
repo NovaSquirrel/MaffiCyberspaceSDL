@@ -53,6 +53,7 @@ int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, 
 }
 
 uint8_t test_level[] = {
+/*
 	LC_ISLAND, 10, 10, 
 	LC_ISLAND, 15, 10,
 	LC_ISLAND, 20, 10,
@@ -63,7 +64,22 @@ uint8_t test_level[] = {
 	LC_ISLAND, 25, 30,
 	LC_ISLAND, 30, 30,
 	LC_RECT,   30, 10, 20, 5,
-	LC_END,    10, 10,
+*/
+	LC_ISLAND, 32, 32,
+	LC_ISLAND_TINY, 32+10, 32,
+	LC_ISLAND_TINY, 32+5, 32,
+	LC_ISLAND_TINY, 32-5, 32,
+	LC_ISLAND_TINY, 32-10, 32,
+	LC_ISLAND_TINY, 32, 32-5,
+	LC_ISLAND_TINY, 32, 32-10,
+	LC_ISLAND_TINY, 32, 32+5,
+	LC_ISLAND_TINY, 32, 32+10,
+	LC_RECT, 32, 32, 30, 3,
+	LC_RECT, 32, 32, 3, 30,
+	LC_RECT, 16, 32, 5, 30,
+	LC_RECT, 32+16, 32, 5, 30,
+//	LC_CUSTOM_ISLAND, 32, 32, 10, 10, 8, 8, 10,
+	LC_END,    32, 32,
 };
 
 void read_level(uint8_t *level);

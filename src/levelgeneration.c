@@ -19,8 +19,12 @@ void island_at(int x, int y, int max_width, int max_height, int max_offset_x, in
 	for(int r=0; r<rects; r++) {
 		int width = Random(max_width)+1;
 		int height = Random(max_height)+1;
-		int oX = Random(Random(max_offset_x)+1)-max_offset_x/2;
-		int oY = Random(Random(max_offset_y)+1)-max_offset_y/2;
+		int oX = Random(Random(max_offset_x)+1);
+		int oY = Random(Random(max_offset_y)+1);
+		if(Random(2))
+			oX = -oX;
+		if(Random(2))
+			oY = -oY;
 		levelrect(x+oX-width/2, y+oY-height/2, width, height, T_FLOOR);
 	}
 }
@@ -36,13 +40,41 @@ void floodfill_playfield(int x, int y) {
 	floodfill_playfield(x, y+1);
 }
 
-void read_level(uint8_t *level_template) {
-	/*
-	for(int i=0; i<20; i++) {
-		island_at(Random(PLAYFIELD_W), Random(PLAYFIELD_H), 8, 8, 5, 5, 8, T_FLOOR);
+void fix_unvisited_wall(int x, int y) {
+	if((playfield[x][y] == T_FLOOR /*|| playfield[x][y] == T_HEART*/) && !playfield_visited[x][y]) {
+		//playfield[x][y] = T_HEART;
+		int used_directions[4] = {0, 0, 0, 0};
+		while(!used_directions[0] || !used_directions[1] || !used_directions[2] || !used_directions[3]) {
+			int direction = Random(4);
+			if(used_directions[direction])
+				continue;
+			used_directions[direction] = 1;
+			if(direction == 0 && x >= 2 && playfield_visited[x-2][y]) {
+				playfield[x-1][y] = T_FLOOR;
+				tiles_to_visit++;
+				floodfill_playfield(x-1, y);
+				break;
+			} else if(direction == 1 && y >= 2 && playfield_visited[x][y-2]) {
+				playfield[x][y-1] = T_FLOOR;
+				tiles_to_visit++;
+				floodfill_playfield(x, y-1);
+				break;
+			} else if(direction == 2 && x <= PLAYFIELD_W-3 && playfield_visited[x+2][y]) {
+				playfield[x+1][y] = T_FLOOR;
+				tiles_to_visit++;
+				floodfill_playfield(x+1, y);
+				break;
+			} else if(direction == 3 && y <= PLAYFIELD_H-3 && playfield_visited[x][y+2]) {
+				playfield[x][y+1] = T_FLOOR;
+				tiles_to_visit++;
+				floodfill_playfield(x, y+1);
+				break;
+			}
+		}
 	}
-	*/
+}
 
+void read_level(uint8_t *level_template) {
 	int level_is_good = 0;
 	while(!level_is_good) {
 		// Clear the playfield first
@@ -68,10 +100,20 @@ void read_level(uint8_t *level_template) {
 					PlayerY = player_start_y * 16 + 8;
 					done = 1;
 					break;
+				case LC_ISLAND_TINY:
+					x     = *(level++);
+					y     = *(level++);
+					island_at(x, y, 3, 3, 3, 3, 5, type);
+					break;
+				case LC_ISLAND_SMALL:
+					x     = *(level++);
+					y     = *(level++);
+					island_at(x, y, 5, 5, 3, 3, 5, type);
+					break;
 				case LC_ISLAND:
 					x     = *(level++);
 					y     = *(level++);
-					island_at(x, y, 8, 8, 5, 5, 8, type);
+					island_at(x, y, 8, 8, 3, 3, 8, type);
 					break;
 				case LC_CUSTOM_ISLAND:
 					x     = *(level++);
@@ -94,6 +136,24 @@ void read_level(uint8_t *level_template) {
 					type  = *(level++);
 					break;
 			}
+		}
+
+		// Put walls on the very edge of the map
+		for(int i=0;i<PLAYFIELD_W;i++) {
+			playfield[i][0] = T_EMPTY;
+			playfield[i][PLAYFIELD_W-1] = T_EMPTY;
+			playfield[0][i] = T_EMPTY;
+			playfield[PLAYFIELD_H-1][i] = T_EMPTY;
+			/*
+			if(playfield[i][0] == T_FLOOR)
+				playfield[i][0] = T_WALL;
+			if(playfield[i][PLAYFIELD_H-1] == T_FLOOR)
+				playfield[i][PLAYFIELD_H-1] = T_WALL;
+			if(playfield[0][i] == T_FLOOR)
+				playfield[0][i] = T_WALL;
+			if(playfield[PLAYFIELD_W-1][i] == T_FLOOR)
+				playfield[PLAYFIELD_W-1][i] = T_WALL;
+			*/
 		}
 
 		// Generate walls
@@ -119,6 +179,7 @@ void read_level(uint8_t *level_template) {
 			}
 		}
 
+		// Count the number of tiles to visit
 		tiles_to_visit = 0;
 		for(int x=0; x<PLAYFIELD_W; x++) {
 			for(int y=0; y<PLAYFIELD_H; y++) {
@@ -137,61 +198,35 @@ void read_level(uint8_t *level_template) {
 
 		printf("%d tiles left after flood fill\n", tiles_to_visit);
 
-		for(int x=0; x<PLAYFIELD_W; x++) {
-			for(int y=0; y<PLAYFIELD_H; y++) {
-				if(playfield[x][y] == T_FLOOR && !playfield_visited[x][y]) {
-					int used_directions[4] = {0, 0, 0, 0};
-					while(!used_directions[0] || !used_directions[1] || !used_directions[2] || !used_directions[3]) {
-						int direction = Random(4);
-						if(used_directions[direction])
-							continue;
-						used_directions[direction] = 1;
-						if(direction == 0 && x >= 2 && playfield_visited[x-2][y]) {
-							playfield[x-1][y] = T_FLOOR;
-							tiles_to_visit++;
-							floodfill_playfield(x-1, y);
-							break;
-						} else if(direction == 1 && y >= 2 && playfield_visited[x][y-2]) {
-							playfield[x][y-1] = T_FLOOR;
-							tiles_to_visit++;
-							floodfill_playfield(x, y-1);
-							break;
-						} else if(direction == 2 && x <= PLAYFIELD_W-3 && playfield_visited[x+2][y]) {
-							playfield[x+1][y] = T_FLOOR;
-							tiles_to_visit++;
-							floodfill_playfield(x+1, y);
-							break;
-						} else if(direction == 3 && y <= PLAYFIELD_H-3 && playfield_visited[x][y+2]) {
-							playfield[x][y+1] = T_FLOOR;
-							tiles_to_visit++;
-							floodfill_playfield(x, y+1);
-							break;
-						}
-					}
-
-
+		for(int try=0; try<2; try++) {
+			// Try to fix the level
+			for(int x=0; x<PLAYFIELD_W; x++) {
+				for(int y=0; y<PLAYFIELD_H; y++) {
+					fix_unvisited_wall(x, y);
 				}
 			}
+			printf("%d tiles left to visit\n", tiles_to_visit);
+			for(int x=PLAYFIELD_W-1; x>=0; x--) {
+				for(int y=PLAYFIELD_H-1; y>=0; y--) {
+					fix_unvisited_wall(x, y);
+				}
+			}
+			printf("%d tiles left to visit\n", tiles_to_visit);
 		}
-		printf("%d tiles left to visit\n", tiles_to_visit);
 
 		fflush(stdout);
 
 		level_is_good = 1;
 	}
 
-	playfield[PLAYFIELD_W-1][0] = T_WALL;
-	playfield[PLAYFIELD_W-1][PLAYFIELD_H-1] = T_WALL;
-	playfield[0][PLAYFIELD_H-1] = T_WALL;
-
 	// Put a border on everything that needs it
-	for(int i=1; i<PLAYFIELD_W-1; i++) {
-		for(int j=1; j<PLAYFIELD_H-1; j++) {
+	for(int i=0; i<PLAYFIELD_W; i++) {
+		for(int j=0; j<PLAYFIELD_H; j++) {
 			if(playfield[i][j] == T_EMPTY) {
-				if((playfield[i-1][j] == T_FLOOR) ||
-					(playfield[i+1][j] == T_FLOOR) ||
-					(playfield[i][j-1] == T_FLOOR) ||
-					(playfield[i][j+1] == T_FLOOR))
+				if((i != 0 && playfield[i-1][j] == T_FLOOR) ||
+					(i != PLAYFIELD_W-1 && playfield[i+1][j] == T_FLOOR) ||
+					(j != 0 && playfield[i][j-1] == T_FLOOR) ||
+					(j != PLAYFIELD_H-1 && playfield[i][j+1] == T_FLOOR))
 				playfield[i][j] = T_WALL;
 			}
 		}
