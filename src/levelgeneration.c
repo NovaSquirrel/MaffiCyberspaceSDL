@@ -29,15 +29,64 @@ void island_at(int x, int y, int max_width, int max_height, int max_offset_x, in
 	}
 }
 
+int floodfill_level = 0;
+int max_floodfill_level = 0;
+/*
 void floodfill_playfield(int x, int y) {
 	if(playfield_visited[x][y] || playfield[x][y] == T_WALL || playfield[x][y] == T_EMPTY || x < 0 || y < 0 || x >= PLAYFIELD_W || y >= PLAYFIELD_H)
 		return;
+	floodfill_level++;
+	if(floodfill_level > max_floodfill_level) {
+		max_floodfill_level = floodfill_level;
+	}
 	playfield_visited[x][y] = 1;
 	tiles_to_visit--;
 	floodfill_playfield(x-1, y);
 	floodfill_playfield(x+1, y);
 	floodfill_playfield(x, y-1);
 	floodfill_playfield(x, y+1);
+	floodfill_level--;
+}
+*/
+
+#define FLOODFILL_QUEUE_SIZE 256
+#define FLOODFILL_QUEUE_MASK 255
+int floodfill_queue_x[FLOODFILL_QUEUE_SIZE];
+int floodfill_queue_y[FLOODFILL_QUEUE_SIZE];
+int floodfill_write_index = 0;
+int floodfill_read_index = 0;
+void floodfill_add_to_queue(int x, int y) {
+	if(playfield_visited[x][y] || playfield[x][y] == T_WALL || playfield[x][y] == T_EMPTY || x < 0 || y < 0 || x >= PLAYFIELD_W || y >= PLAYFIELD_H)
+		return;
+	playfield_visited[x][y] = 1;
+	// Add to the queue
+	floodfill_level++;
+	if(floodfill_level > max_floodfill_level)
+		max_floodfill_level = floodfill_level;
+	floodfill_queue_x[floodfill_write_index] = x;
+	floodfill_queue_y[floodfill_write_index] = y;
+	floodfill_write_index = (floodfill_write_index+1) & FLOODFILL_QUEUE_MASK;
+	if(floodfill_write_index == floodfill_read_index) {
+		puts("Circular buffer is full!");
+		fflush(stdout);
+	}
+}
+void floodfill_playfield(int x, int y) {
+	floodfill_write_index = 0;
+	floodfill_read_index = 0;
+	floodfill_level = 0;
+	floodfill_add_to_queue(x, y);
+	while(floodfill_read_index != floodfill_write_index) {
+		floodfill_level--;
+		//printf("%d -> %d\n", floodfill_read_index, floodfill_write_index);
+		int read_x = floodfill_queue_x[floodfill_read_index];
+		int read_y = floodfill_queue_y[floodfill_read_index];
+		floodfill_add_to_queue(read_x-1, read_y);
+		floodfill_add_to_queue(read_x+1, read_y);
+		floodfill_add_to_queue(read_x, read_y-1);
+		floodfill_add_to_queue(read_x, read_y+1);
+		floodfill_read_index = (floodfill_read_index+1) & FLOODFILL_QUEUE_MASK;
+	}
 }
 
 void fix_unvisited_wall(int x, int y) {
@@ -51,22 +100,18 @@ void fix_unvisited_wall(int x, int y) {
 			used_directions[direction] = 1;
 			if(direction == 0 && x >= 2 && playfield_visited[x-2][y]) {
 				playfield[x-1][y] = T_FLOOR;
-				tiles_to_visit++;
 				floodfill_playfield(x-1, y);
 				break;
 			} else if(direction == 1 && y >= 2 && playfield_visited[x][y-2]) {
 				playfield[x][y-1] = T_FLOOR;
-				tiles_to_visit++;
 				floodfill_playfield(x, y-1);
 				break;
 			} else if(direction == 2 && x <= PLAYFIELD_W-3 && playfield_visited[x+2][y]) {
 				playfield[x+1][y] = T_FLOOR;
-				tiles_to_visit++;
 				floodfill_playfield(x+1, y);
 				break;
 			} else if(direction == 3 && y <= PLAYFIELD_H-3 && playfield_visited[x][y+2]) {
 				playfield[x][y+1] = T_FLOOR;
-				tiles_to_visit++;
 				floodfill_playfield(x, y+1);
 				break;
 			}
@@ -76,6 +121,8 @@ void fix_unvisited_wall(int x, int y) {
 
 void read_level(uint8_t *level_template) {
 	int level_is_good = 0;
+	int player_start_x = 0;
+	int player_start_y = 0;
 	while(!level_is_good) {
 		// Clear the playfield first
 		for(int i=0; i<PLAYFIELD_W; i++) {
@@ -88,8 +135,6 @@ void read_level(uint8_t *level_template) {
 		const uint8_t *level = level_template;
 		int done = 0;
 		int type = T_FLOOR;
-		int player_start_x = 0;
-		int player_start_y = 0;
 		while(!done) {
 			uint8_t x, y, w, h, ox, oy, tries;
 			switch(*(level++)) {
@@ -190,13 +235,12 @@ void read_level(uint8_t *level_template) {
 		}
 		printf("Want to visit %d tiles\n", tiles_to_visit);
 
-		// Make sure you can traverse the level
-		playfield[player_start_x][player_start_y] = T_FLOOR;
-
 		memset(&playfield_visited, 0, sizeof(playfield_visited));
+		max_floodfill_level = 0;
 		floodfill_playfield(player_start_x, player_start_y);
 
 		printf("%d tiles left after flood fill\n", tiles_to_visit);
+		printf("Max flood fill level %d\n", max_floodfill_level);
 
 		for(int try=0; try<2; try++) {
 			// Try to fix the level
@@ -205,10 +249,29 @@ void read_level(uint8_t *level_template) {
 					fix_unvisited_wall(x, y);
 				}
 			}
+
+			tiles_to_visit = 0;
+			for(int x=0; x<PLAYFIELD_W; x++) {
+				for(int y=0; y<PLAYFIELD_H; y++) {
+					if(playfield[x][y] == T_FLOOR && !playfield_visited[x][y]) {
+						tiles_to_visit++;
+					}
+				}
+			}
 			printf("%d tiles left to visit\n", tiles_to_visit);
+
 			for(int x=PLAYFIELD_W-1; x>=0; x--) {
 				for(int y=PLAYFIELD_H-1; y>=0; y--) {
 					fix_unvisited_wall(x, y);
+				}
+			}
+
+			tiles_to_visit = 0;
+			for(int x=0; x<PLAYFIELD_W; x++) {
+				for(int y=0; y<PLAYFIELD_H; y++) {
+					if(playfield[x][y] == T_FLOOR && !playfield_visited[x][y]) {
+						tiles_to_visit++;
+					}
 				}
 			}
 			printf("%d tiles left to visit\n", tiles_to_visit);
@@ -219,6 +282,7 @@ void read_level(uint8_t *level_template) {
 		level_is_good = 1;
 	}
 
+/*
 	// Put a border on everything that needs it
 	for(int i=0; i<PLAYFIELD_W; i++) {
 		for(int j=0; j<PLAYFIELD_H; j++) {
@@ -228,6 +292,24 @@ void read_level(uint8_t *level_template) {
 					(j != 0 && playfield[i][j-1] == T_FLOOR) ||
 					(j != PLAYFIELD_H-1 && playfield[i][j+1] == T_FLOOR))
 				playfield[i][j] = T_WALL;
+			}
+		}
+	}
+*/
+	// Autotile the walls
+	for(int i=0; i<PLAYFIELD_W; i++) {
+		for(int j=0; j<PLAYFIELD_H; j++) {
+			if(playfield[i][j] == T_WALL) {
+				int autotile = 0;
+				if(j != 0 && playfield[i][j-1] >= T_WALL && playfield[i][j-1] <= T_WALL_LRDU)
+					autotile |= 1;
+				if(j != PLAYFIELD_H-1 && playfield[i][j+1] >= T_WALL && playfield[i][j+1] <= T_WALL_LRDU)
+					autotile |= 2;
+				if(i != PLAYFIELD_W-1 && playfield[i+1][j] >= T_WALL && playfield[i+1][j] <= T_WALL_LRDU)
+					autotile |= 4;
+				if(i != 0 && playfield[i-1][j] >= T_WALL && playfield[i-1][j] <= T_WALL_LRDU)
+					autotile |= 8;
+				playfield[i][j] = T_WALL + autotile;
 			}
 		}
 	}
@@ -250,6 +332,9 @@ void read_level(uint8_t *level_template) {
 			}
 		}
 	}
+
+	// Make sure you can traverse the level
+	playfield[player_start_x][player_start_y] = T_FLOOR;
 
 	// Add stars
 	for(int i=1; i<PLAYFIELD_W-1; i++) {

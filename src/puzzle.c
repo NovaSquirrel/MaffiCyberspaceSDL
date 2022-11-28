@@ -6,8 +6,11 @@ SDL_Window *window = NULL;
 SDL_Renderer *ScreenRenderer = NULL;
 int quit = 0;
 int retraces = 0;
-SDL_Texture *GameSheet = NULL;
+
 SDL_Texture *BlockSheet = NULL;
+SDL_Texture *EnemiesSheet = NULL;
+SDL_Texture *MaffiSheet = NULL;
+SDL_Texture *MiscellaneousSheet = NULL;
 
 void run_game();
 void draw_game();
@@ -19,8 +22,8 @@ int main(int argc, char *argv[]) {
 		return -1;
 	}
 
-	ScreenWidth = 160*3 * ScreenZoom;
-	ScreenHeight = 144*3 * ScreenZoom;
+	ScreenWidth = 160*1 * ScreenZoom;
+	ScreenHeight = 144*1 * ScreenZoom;
 
 	window = SDL_CreateWindow("Maffi cyberspace game", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, ScreenWidth, ScreenHeight, SDL_WINDOW_SHOWN);
 	if(!window) {
@@ -39,8 +42,10 @@ int main(int argc, char *argv[]) {
 	SDL_RenderSetScale(ScreenRenderer, 2, 2);
 	// ------------------------------------------------------
 
-	GameSheet = LoadTexture("data/maffigame.png", 0);
-	BlockSheet = LoadTexture("data/maffiblocks.png", 0);
+	BlockSheet = LoadTexture("data/blocks.png", 0);
+	EnemiesSheet = LoadTexture("data/enemies.png", 0);
+	MaffiSheet = LoadTexture("data/maffi.png", 0);
+	MiscellaneousSheet = LoadTexture("data/miscellaneous.png", 0);
 
 	init_game();
 

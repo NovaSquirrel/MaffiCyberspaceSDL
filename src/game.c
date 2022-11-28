@@ -1,86 +1,32 @@
 #include "puzzle.h"
-struct entity entities[ENTITY_LEN];
+#include <math.h>
+
+// Prototypes
+
+void run_entities();
+void draw_entities();
+
+void run_player();
+void draw_player();
+
+// External variables
+extern int PlayerX;
+extern int PlayerY;
+extern uint8_t test_level[];
+
+// Variables
 
 int playfield[PLAYFIELD_W][PLAYFIELD_H];
 
-int PlayerX = 40;
-int PlayerY = 40;
 double CameraX = 0;
 double CameraY = 0;
 const Uint8 *keyboard;
 int framecounter = 0;
 
-enum KeyCode {
-  KEY_LEFT  = 0x0001,
-  KEY_RIGHT = 0x0002,
-  KEY_UP    = 0x0004,
-  KEY_DOWN  = 0x0008,
-  KEY_A     = 0x0010,
-  KEY_B     = 0x0020,
-  KEY_RESET = 0x0040,
-};
-
 uint16_t KeyDown = 0, KeyNew = 0, KeyLast = 0;
 int KeyRepeat = 0;
 
-enum EntityType {
-	E_EMPTY,
-	E_ARROW,
-	E_SHORT_ARROW,
-};
-
-int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, int var3, int var4) {
-	int i = 0;
-	for(; i<ENTITY_LEN; i++) {
-		if(!entities[i].type) {
-			break;
-		}
-	}
-	if(i == ENTITY_LEN)
-		return -1;
-	entities[i].state = STATE_NORMAL;
-	entities[i].type = type;
-	entities[i].xpos = px;
-	entities[i].ypos = py;
-	entities[i].xspeed = vx;
-	entities[i].yspeed = vy;
-	entities[i].var[0] = var1;
-	entities[i].var[1] = var2;
-	entities[i].var[2] = var3;
-	entities[i].var[3] = var4;
-	entities[i].timer = 0;
-	return i;
-}
-
-uint8_t test_level[] = {
-/*
-	LC_ISLAND, 10, 10, 
-	LC_ISLAND, 15, 10,
-	LC_ISLAND, 20, 10,
-	LC_ISLAND, 20, 15,
-	LC_ISLAND, 20, 20,
-	LC_ISLAND, 20, 25,
-	LC_ISLAND, 20, 30,
-	LC_ISLAND, 25, 30,
-	LC_ISLAND, 30, 30,
-	LC_RECT,   30, 10, 20, 5,
-*/
-	LC_ISLAND, 32, 32,
-	LC_ISLAND_TINY, 32+10, 32,
-	LC_ISLAND_TINY, 32+5, 32,
-	LC_ISLAND_TINY, 32-5, 32,
-	LC_ISLAND_TINY, 32-10, 32,
-	LC_ISLAND_TINY, 32, 32-5,
-	LC_ISLAND_TINY, 32, 32-10,
-	LC_ISLAND_TINY, 32, 32+5,
-	LC_ISLAND_TINY, 32, 32+10,
-	LC_RECT, 32, 32, 30, 3,
-	LC_RECT, 32, 32, 3, 30,
-	LC_RECT, 16, 32, 5, 30,
-	LC_RECT, 32+16, 32, 5, 30,
-//	LC_CUSTOM_ISLAND, 32, 32, 10, 10, 8, 8, 10,
-	LC_END,    32, 32,
-};
+// Code
 
 void read_level(uint8_t *level);
 void init_game() {
@@ -92,53 +38,9 @@ void init_game() {
 	read_level(test_level);
 }
 
-int PlayerFlips = SDL_FLIP_NONE;
-int PlayerSourceX = 0;
-int PlayerSourceY = 0;
-void run_player() {
-	int speed = 1;
-	if(KeyDown & KEY_A)
-		speed = 2;
-	if(KeyDown & KEY_DOWN) {
-		PlayerY+=speed;
-		PlayerFlips = SDL_FLIP_NONE;
-		PlayerSourceX = 0;
-		PlayerSourceY = 24;
-	}
-	if(KeyDown & KEY_UP) {
-		PlayerY-=speed;
-		PlayerFlips = SDL_FLIP_NONE;
-		PlayerSourceX = 0;
-		PlayerSourceY = 48;
-	}
-	if(KeyDown & KEY_LEFT) {
-		PlayerX-=speed;
-		PlayerFlips = SDL_FLIP_HORIZONTAL;
-		PlayerSourceX = 0;
-		PlayerSourceY = 0;
-	}
-	if(KeyDown & KEY_RIGHT) {
-		PlayerX+=speed;
-		PlayerFlips = SDL_FLIP_NONE;
-		PlayerSourceX = 0;
-		PlayerSourceY = 0;
-	}
-	if(KeyNew & KEY_A) {
-	}
-}
-
-void run_entity() {
-//	static const int dir_x[4] = {1, 0, -1, 0};
-//	static const int dir_y[4] = {0, 1, 0, -1};
-
-	for(int i=0; i<ENTITY_LEN; i++) {
-		switch(entities[i].type) {
-			case E_ARROW:
-				break;
-			case E_SHORT_ARROW:
-				break;
-		}
-	}
+int RandomCanBeNegative(uint32_t Bound) {
+	int number = Random(Bound);
+	return Random(2) ? number : -number;
 }
 
 void run_game() {
@@ -149,7 +51,8 @@ void run_game() {
 				(keyboard[SDL_SCANCODE_DOWN]  << 3) |
 				(keyboard[SDL_SCANCODE_X]     << 4) |
 				(keyboard[SDL_SCANCODE_Z]     << 5) |
-				(keyboard[SDL_SCANCODE_C]     << 6);
+				(keyboard[SDL_SCANCODE_C]     << 6) |
+				(keyboard[SDL_SCANCODE_V]     << 7);
 	KeyNew = KeyDown & (~KeyLast);
 
 	if(KeyNew & KEY_RESET)
@@ -175,7 +78,34 @@ void run_game() {
 	CameraY += (TargetCameraY - CameraY)/4.0;
 
 	run_player();
-	run_entity();
+	run_entities();
+
+	if((framecounter & 63) == 0 && count_enemies() < 20) {
+		// Make an enemy
+		int x, y, give_up = 0;
+		for(int tries = 20; tries; tries--) {
+			if(tries == 1) {
+				give_up = 1;
+				break;
+			}
+			double angle = Random(360) / 360.0 * 2 * M_PI;
+//			int radius = Random(80-60)+60;
+			int radius = Random(120-80)+80;
+			x = cos(angle) * radius;
+			y = sin(angle) * radius;
+/*			
+			x = RandomCanBeNegative(80);
+			y = RandomCanBeNegative(80);
+*/
+			if(solid_at_xy(PlayerX+x, PlayerY+y))
+				continue;
+			if((abs(x) + abs(y)) > 40)
+				break;
+		}
+		if(!give_up)
+			create_entity(E_ENEMY_SPAWNING, PlayerX+x, PlayerY+y, 0, 0, 0, 0, 0, 0);
+	}
+
 
 	framecounter++;
 }
@@ -204,5 +134,6 @@ void draw_game() {
 		}
 	}
 
-	blitf(GameSheet, ScreenRenderer, PlayerSourceX, PlayerSourceY, PlayerX-round(CameraX)-8, PlayerY-round(CameraY)-24, 16, 24, PlayerFlips);
+	draw_entities();
+	draw_player();
 }

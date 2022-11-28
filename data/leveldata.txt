@@ -1,0 +1,15 @@
+island 32, 32
+island_tiny 32+10, 32
+island_tiny 32+5, 32
+island_tiny 32-5, 32
+island_tiny 32-10, 32
+island_tiny 32, 32-5
+island_tiny 32, 32-10
+island_tiny 32, 32+5
+island_tiny 32, 32+10
+rect 32, 32, 30, 3
+rect 32, 32, 3, 30
+rect 16, 32, 5, 30
+rect 32+16, 32, 5, 30
+#	LC_CUSTOM_ISLAND, 32, 32, 10, 10, 8, 8, 10,
+end 32, 32

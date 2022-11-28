@@ -1,4 +1,4 @@
-objlist := puzzle utility game random levelgeneration
+objlist := puzzle utility game random levelgeneration gamedata player actors
 program_title = puzzle
  
 CC := gcc

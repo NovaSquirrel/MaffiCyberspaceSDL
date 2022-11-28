@@ -77,4 +77,20 @@ void blitfull(SDL_Texture* SrcBmp, SDL_Renderer* DstBmp, int DestX, int DestY) {
 	SDL_RenderCopy(DstBmp,	SrcBmp, NULL, &Dst);
 }
 
+///////////////////////////////////////////////////////////////////////////////
 
+int solid_at_xy(int x, int y) {
+	x /= 16;
+	y /= 16;
+	if(x < 0 || x >= PLAYFIELD_W || y < 0 || y >= PLAYFIELD_H)
+		return 1;
+	return block_flags[playfield[x][y]] & TF_SOLID;
+}
+
+int type_at_xy(int x, int y) {
+	x /= 16;
+	y /= 16;
+	if(x < 0 || x >= PLAYFIELD_W || y < 0 || y >= PLAYFIELD_H)
+		return 0;
+	return playfield[x][y];
+}
