@@ -111,6 +111,8 @@ enum EntityType {
 	E_POOF,
 	E_WATER,
 	E_ENEMY_SPAWNING,
+
+	E_DAMAGE_PARTICLE,
 };
 
 enum LevelCommand {
@@ -140,6 +142,12 @@ struct entity {
 
 	double xspeed;
 	double yspeed;
+
+	double knockback_x;
+	double knockback_y;
+	int knockback_cooldown;
+	int health;
+	int damaged_by_id;
 
 	int var[4]; // generic variables
 	int timer;

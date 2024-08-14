@@ -17,6 +17,7 @@ extern uint8_t test_level[];
 // Variables
 
 int playfield[PLAYFIELD_W][PLAYFIELD_H];
+extern int controller_keys;
 
 double CameraX = 0;
 double CameraY = 0;
@@ -53,6 +54,7 @@ void run_game() {
 				(keyboard[SDL_SCANCODE_Z]     << 5) |
 				(keyboard[SDL_SCANCODE_C]     << 6) |
 				(keyboard[SDL_SCANCODE_V]     << 7);
+	KeyDown |= controller_keys;
 	KeyNew = KeyDown & (~KeyLast);
 
 	if(KeyNew & KEY_RESET)

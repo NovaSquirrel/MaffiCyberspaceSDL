@@ -33,6 +33,12 @@ int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, 
 	entities[i].var[3] = var4;
 	entities[i].timer = 0;
 	entities[i].flip = 0;
+
+	entities[i].knockback_x = 0;
+	entities[i].knockback_y = 0;
+	entities[i].knockback_cooldown = 0;
+	entities[i].damaged_by_id = -1;
+	entities[i].health = 100;
 	return i;
 }
 
@@ -49,13 +55,50 @@ int touching_entity(int i, int j, int w1, int h1, int w2, int h2) {
 		(abs(entities[i].ypos - entities[j].ypos) * 2 < (h1 + h2));
 }
 
+int walk_entity(int i, double x, double y);
+void do_knockback(int e) {
+	if(entities[e].knockback_cooldown)
+		entities[e].knockback_cooldown--;
+	if(walk_entity(e, entities[e].knockback_x, entities[e].knockback_y)) {
+		entities[e].knockback_x = -entities[e].knockback_x * 0.5;
+		entities[e].knockback_y = -entities[e].knockback_y * 0.5;
+	}
+	entities[e].knockback_x *= 0.90;
+	entities[e].knockback_y *= 0.90;
+	if(fabs(entities[e].knockback_x) < 0.05)
+		entities[e].knockback_x = 0;
+	if(fabs(entities[e].knockback_y) < 0.05)
+		entities[e].knockback_y = 0;
+}
+
 void entity_get_shot(int e) {
 	for(int i=0; i<ENTITY_LEN; i++) {
 		switch(entities[i].type) {
 			case E_PLAYER_SHOT:
 				if(touching_entity(e, i, 16, 12, 8, 4)) {
-					entities[e].type = E_EMPTY;
-//					entities[i].type = E_EMPTY;
+					if(entities[i].var[3] != entities[e].damaged_by_id || entities[e].damaged_by_id == -1) {
+						entities[e].health -= 50;
+						entities[e].damaged_by_id = entities[i].var[3];
+						if(entities[e].health <= 0) {
+							entities[e].type = E_POOF;
+							entities[e].timer = 0;
+						} else {
+							create_entity(E_DAMAGE_PARTICLE, entities[e].xpos, entities[e].ypos, RandomCanBeNegative(2), RandomCanBeNegative(2), -8, 0, 0, 0);
+						}
+
+						entities[e].knockback_x = entities[i].xspeed * 6;
+						entities[e].knockback_y = entities[i].yspeed * 6;
+						entities[e].knockback_cooldown = 30;
+					}
+
+					/*
+					if(!entities[e].knockback_cooldown) {
+						//double angle = atan2(entities[i].ypos - entities[e].ypos, entities[i].xpos - entities[e].xpos);
+						//entities[e].knockback_x = entities[i].xspeed * cos(angle) * 8;
+						//entities[e].knockback_y = entities[i].yspeed * sin(angle) * 8;
+					}
+					*/
+					//entities[i].type = E_EMPTY;
 				}
 				break;
 		}
@@ -85,7 +128,7 @@ int count_enemies() {
 	return count;
 }
 
-int walk_entity(int i, int x, int y) {
+int walk_entity(int i, double x, double y) {
 	int tile_under = type_at_xy(entities[i].xpos, entities[i].ypos);
 	if((tile_under == T_PAINT) && (framecounter & 2)) {
 		return 0;
@@ -139,7 +182,28 @@ void run_entities() {
 		}
 
 		switch(entities[i].type) {
+			case E_DAMAGE_PARTICLE:
+			{
+				entities[i].xpos += entities[i].xspeed;
+				entities[i].ypos += entities[i].yspeed;
+				entities[i].timer++;
+				if(entities[i].timer >= 30) {
+					entities[i].type = 0;
+				}
+				entities[i].var[1] += entities[i].var[0] / 4;
+				entities[i].var[0]++;
+				int type_under = type_at_xy(entities[i].xpos, entities[i].ypos);
+				if(entities[i].var[1] > 0) {
+					if(type_under == T_FLOOR) {
+						set_type_at_xy(entities[i].xpos, entities[i].ypos, T_PAINT);
+					}
+					entities[i].type = 0;
+				}
+				break;
+			}
+
 			case E_PLAYER_SHOT:
+			{
 				entities[i].xpos += entities[i].xspeed;
 				entities[i].ypos += entities[i].yspeed;
 				entities[i].timer++;
@@ -170,11 +234,14 @@ void run_entities() {
 					entities[i].type = 0;
 				}
 				break;
+			}
 
 			case E_WALKER:
-				if(framecounter & 1)
+				if((framecounter & 1) && !entities[i].knockback_x && !entities[i].knockback_y) {
 					walk_entity(i, sign(PlayerX - entities[i].xpos), sign(PlayerY - entities[i].ypos));
+				}
 				entity_get_shot(i);
+				do_knockback(i);
 				break;
 			case E_KITTY:
 				break;
@@ -206,6 +273,9 @@ void run_entities() {
 			case E_GLOBE:
 				break;
 			case E_POOF:
+				entities[i].timer++;
+				if(entities[i].timer == 4*3)
+					entities[i].type = 0;
 				break;
 			case E_WATER:
 				break;
@@ -232,6 +302,10 @@ void draw_entities() {
 //				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos-4+2*sin((double)framecounter/8+i), 8, 8, SDL_FLIP_NONE);
 //				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos-4, 8, 8, SDL_FLIP_NONE);
 				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos+entities[i].var[1], 8, 8, SDL_FLIP_NONE);
+				break;
+
+			case E_DAMAGE_PARTICLE:
+				draw_sprite_at_xy(MiscellaneousSheet, 16, 0, entities[i].xpos, entities[i].ypos+entities[i].var[1], 8, 8, SDL_FLIP_NONE);
 				break;
 
 			case E_WALKER:
@@ -279,12 +353,14 @@ void draw_entities() {
 			case E_GLOBE:
 				draw_sprite_at_xy(EnemiesSheet, 32, 32, entities[i].xpos, entities[i].ypos, 16, 16, SDL_FLIP_NONE);
 				break;
-			case E_POOF:
-				break;
 			case E_WATER:
 				break;
 			case E_ENEMY_SPAWNING:
 				draw_sprite_at_xy(EnemiesSheet, 32, 16, entities[i].xpos, entities[i].ypos, 16, 16, SDL_FLIP_NONE);
+				break;
+
+			case E_POOF:
+				draw_sprite_at_xy(EnemiesSheet, (4+(entities[i].timer/4))*16, 16, entities[i].xpos, entities[i].ypos, 16, 16, SDL_FLIP_NONE);
 				break;
 		}
 	}

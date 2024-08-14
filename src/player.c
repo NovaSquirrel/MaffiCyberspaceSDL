@@ -21,6 +21,9 @@ int DiagonalLockX = 0;
 int DiagonalLockY = 0;
 int DiagonalLockTimer = 0;
 
+double PlayerKnockbackX = 0;
+double PlayerKnockbackY = 0;
+
 // Code
 void do_diagonal_lock() {
 	DiagonalLockX = PlayerShootX;
@@ -30,6 +33,9 @@ void do_diagonal_lock() {
 
 int PaintingTimer = 0;
 #define PAINTING_TIMER_INITIAL 12
+
+int HoldPaintTimer = 0;
+int paint_shot_id = 0;
 
 void run_player() {
 	// Move in response to pressing keys
@@ -140,15 +146,41 @@ void run_player() {
 		}
 	}
 
+	if(KeyDown & KEY_A) {
+		HoldPaintTimer++;
+
+		if(HoldPaintTimer > 20) {
+			if((HoldPaintTimer & 3) == 0) {
+				create_entity(E_PLAYER_SHOT, PlayerX + PlayerShootX * 12, PlayerY + PlayerShootY * 12, 0, 0, -1, 0, 0, -1);
+			}
+		}
+	} else {
+		HoldPaintTimer = 0;
+	}
 	if(KeyNew & KEY_A && !PaintingTimer) {
 		PaintingTimer = PAINTING_TIMER_INITIAL;
 //		create_entity(E_PLAYER_SHOT, PlayerX+PlayerShootX*8, PlayerY+PlayerShootY*8, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
 //		create_entity(E_PLAYER_SHOT, PlayerX, PlayerY, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
+
+		paint_shot_id = (paint_shot_id+1)&255;
+		for(int i=0; i<5; i++) {
+			int PaintX = PlayerX + PlayerShootX * 8 + 0;
+			int PaintY = PlayerY + PlayerShootY * 8 + 0;
+
+			int is_diagonal = PlayerShootX != 0 && PlayerShootY != 0;	
+			int scale = is_diagonal ? 6 : 8;
+			PaintX += PlayerShootY * (i-2) * scale;
+			PaintY += -PlayerShootX * (i-2) * scale;
+
+			// int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, int var3, int var4)
+			create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -10, 0, 0, paint_shot_id);
+		}
 	}
 
 	if(PaintingTimer) {
 		PaintingTimer--;
 		
+	/*
 		int PaintX = PlayerX + PlayerShootX * 8 + 0;//RandomCanBeNegative(3);
 		int PaintY = PlayerY + PlayerShootY * 8 + 0;//RandomCanBeNegative(3);
 
@@ -167,6 +199,7 @@ void run_player() {
 //			create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -10, 0, 0, 0);
 			create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -RandomMinMax(6,12), 0, 0, 0);
 //			create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -8 + abs(PaintingTimer - PAINTING_TIMER_INITIAL/2), 0, 0, 0);
+	*/
 	}
 
 

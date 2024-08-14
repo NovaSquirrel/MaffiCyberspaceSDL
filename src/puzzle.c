@@ -15,9 +15,10 @@ SDL_Texture *MiscellaneousSheet = NULL;
 void run_game();
 void draw_game();
 void init_game();
+int common_event_handler(SDL_Event *e);
 
 int main(int argc, char *argv[]) {
-	if(SDL_Init(SDL_INIT_VIDEO) < 0){
+	if(SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMECONTROLLER) < 0){
 		printf("SDL could not initialize! SDL_Error: %s\n", SDL_GetError());
 		return -1;
 	}
@@ -57,6 +58,8 @@ int main(int argc, char *argv[]) {
 		while(SDL_PollEvent(&e) != 0) {
 			if(e.type == SDL_QUIT)
 				quit = 1;
+			else
+				common_event_handler(&e);
 		}
 
 		SDL_SetRenderDrawColor(ScreenRenderer, 64, 64, 64, 255);
