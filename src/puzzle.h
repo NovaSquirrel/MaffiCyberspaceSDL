@@ -62,8 +62,8 @@ enum TileType {
 	T_TOGGLE_ON,
 	T_TOGGLE_OFF,
 
-	T_UNUSED1,
-	T_UNUSED2,
+	T_PAINT_SMALL,
+	T_PAINT,
 	T_UNUSED3,
 
 	T_WALL,
@@ -178,10 +178,12 @@ void RandomSeed();
 uint32_t RandomRaw();
 uint32_t Random(uint32_t Bound);
 uint32_t RandomMinMax(uint32_t Min, uint32_t Max);
+int RandomCanBeNegative(uint32_t Bound);
 
 // Game related
 int solid_at_xy(int x, int y);
 int type_at_xy(int x, int y);
+void set_type_at_xy(int x, int y, enum TileType type);
 int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, int var3, int var4);
 int entity_is_enemy(enum EntityType type);
 int count_enemies();

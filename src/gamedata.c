@@ -25,8 +25,8 @@ int block_flags[] = {
 	TF_SOLID, // T_TOGGLE_ON
 	0, // T_TOGGLE_OFF
 
-	0, // T_UNUSED1
-	0, // T_UNUSED2
+	0, // T_PAINT_SMALL
+	0, // T_PAINT
 	0, // T_UNUSED3
 
 	TF_SOLID, // T_WALL

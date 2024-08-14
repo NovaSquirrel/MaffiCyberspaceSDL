@@ -94,3 +94,12 @@ int type_at_xy(int x, int y) {
 		return 0;
 	return playfield[x][y];
 }
+
+void set_type_at_xy(int x, int y, enum TileType type) {
+	x /= 16;
+	y /= 16;
+	if(x < 0 || x >= PLAYFIELD_W || y < 0 || y >= PLAYFIELD_H)
+		return;
+	playfield[x][y] = type;
+}
+

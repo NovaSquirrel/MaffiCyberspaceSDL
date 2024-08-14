@@ -55,7 +55,7 @@ void entity_get_shot(int e) {
 			case E_PLAYER_SHOT:
 				if(touching_entity(e, i, 16, 12, 8, 4)) {
 					entities[e].type = E_EMPTY;
-					entities[i].type = E_EMPTY;
+//					entities[i].type = E_EMPTY;
 				}
 				break;
 		}
@@ -86,6 +86,11 @@ int count_enemies() {
 }
 
 int walk_entity(int i, int x, int y) {
+	int tile_under = type_at_xy(entities[i].xpos, entities[i].ypos);
+	if((tile_under == T_PAINT) && (framecounter & 2)) {
+		return 0;
+	}
+
 	int bumped = 0;
 	entities[i].xpos += x;
 	if(x < 0) {
@@ -141,10 +146,27 @@ void run_entities() {
 				if(entities[i].timer >= 30) {
 					entities[i].type = 0;
 				}
+				/*
 				map_x = round(entities[i].xpos)/16;
 				map_y = round(entities[i].ypos)/16;
 				if(playfield[map_x][map_y] == T_BRICKS) {
 					playfield[map_x][map_y] = T_FLOOR;
+					entities[i].type = 0;
+				}
+				*/
+				entities[i].var[1] += entities[i].var[0] / 4;
+				entities[i].var[0]++;
+//				if(entities[i].var[0] > 3)
+//					entities[i].var[0] = 3;
+				int type_under = type_at_xy(entities[i].xpos, entities[i].ypos);
+				if(type_under == T_BRICKS) {
+					set_type_at_xy(entities[i].xpos, entities[i].ypos, T_FLOOR);
+					entities[i].type = 0;
+				}
+				if(entities[i].var[1] > 0) {
+					if(type_under == T_FLOOR) {
+						set_type_at_xy(entities[i].xpos, entities[i].ypos, T_PAINT);
+					}
 					entities[i].type = 0;
 				}
 				break;
@@ -208,7 +230,8 @@ void draw_entities() {
 		switch(entities[i].type) {
 			case E_PLAYER_SHOT:
 //				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos-4+2*sin((double)framecounter/8+i), 8, 8, SDL_FLIP_NONE);
-				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos-4, 8, 8, SDL_FLIP_NONE);
+//				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos-4, 8, 8, SDL_FLIP_NONE);
+				draw_sprite_at_xy(MiscellaneousSheet, 8, 0, entities[i].xpos, entities[i].ypos+entities[i].var[1], 8, 8, SDL_FLIP_NONE);
 				break;
 
 			case E_WALKER:
