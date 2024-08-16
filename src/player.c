@@ -160,8 +160,8 @@ void run_player() {
 		HoldPaintTimer++;
 
 		if(HoldPaintTimer > 20 && (KeyDown & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT))) {			
-			if((HoldPaintTimer & 3) == 0 && (InkAmount >= 2)) {
-				InkAmount -= 2;
+			if((HoldPaintTimer & 3) == 0 && (InkAmount >= 3)) {
+				InkAmount -= 3;
 				InkRefillCooldown = 10;
 				create_entity(E_PLAYER_SHOT, PlayerX + PlayerShootX * 12, PlayerY + PlayerShootY * 12, 0, 0, -1, 0, 0, -1);
 			}
@@ -174,7 +174,7 @@ void run_player() {
 //		create_entity(E_PLAYER_SHOT, PlayerX+PlayerShootX*8, PlayerY+PlayerShootY*8, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
 //		create_entity(E_PLAYER_SHOT, PlayerX, PlayerY, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
 
-		if(InkAmount > 64) {
+		if(InkAmount >= 64) {
 			InkAmount -= 64;
 			InkRefillCooldown = 10;
 

@@ -145,7 +145,10 @@ void draw_game() {
 	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, ScreenWidth/ScreenZoom, 8);
 	SDL_SetRenderDrawColor(ScreenRenderer, 0, 128, 0, 255);
 	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, 255/2, 8);
-	SDL_SetRenderDrawColor(ScreenRenderer, 0, 255, 0, 255);
+	if(InkAmount >= 64)
+		SDL_SetRenderDrawColor(ScreenRenderer, 0, 255, 0, 255);
+	else
+		SDL_SetRenderDrawColor(ScreenRenderer, 0, 192, 0, 255);
 	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, InkAmount/2, 8);
 
 }
