@@ -15,6 +15,8 @@ int PlayerSourceY = 0;
 
 int PlayerShootX = 1;
 int PlayerShootY = 0;
+int InkAmount = 255;
+int InkRefillCooldown = 0;
 
 // When you press a diagonal, make sure the diagonal is locked in for a little bit?
 int DiagonalLockX = 0;
@@ -42,6 +44,14 @@ void run_player() {
 	int speed = 1;
 	int MoveX = 0;
 	int MoveY = 0;
+
+	if(InkRefillCooldown) {
+		InkRefillCooldown--;
+	} else {
+		InkAmount++;
+	}
+	if(InkAmount > 255)
+		InkAmount = 255;
 
 	if(DiagonalLockTimer)
 		DiagonalLockTimer--;
@@ -149,8 +159,10 @@ void run_player() {
 	if(KeyDown & KEY_A) {
 		HoldPaintTimer++;
 
-		if(HoldPaintTimer > 20) {
-			if((HoldPaintTimer & 3) == 0) {
+		if(HoldPaintTimer > 20 && (KeyDown & (KEY_UP | KEY_DOWN | KEY_LEFT | KEY_RIGHT))) {			
+			if((HoldPaintTimer & 3) == 0 && (InkAmount >= 2)) {
+				InkAmount -= 2;
+				InkRefillCooldown = 10;
 				create_entity(E_PLAYER_SHOT, PlayerX + PlayerShootX * 12, PlayerY + PlayerShootY * 12, 0, 0, -1, 0, 0, -1);
 			}
 		}
@@ -162,18 +174,23 @@ void run_player() {
 //		create_entity(E_PLAYER_SHOT, PlayerX+PlayerShootX*8, PlayerY+PlayerShootY*8, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
 //		create_entity(E_PLAYER_SHOT, PlayerX, PlayerY, PlayerShootX*2, PlayerShootY*2, 0, 0, 0, 0);
 
-		paint_shot_id = (paint_shot_id+1)&255;
-		for(int i=0; i<5; i++) {
-			int PaintX = PlayerX + PlayerShootX * 8 + 0;
-			int PaintY = PlayerY + PlayerShootY * 8 + 0;
+		if(InkAmount > 64) {
+			InkAmount -= 64;
+			InkRefillCooldown = 10;
 
-			int is_diagonal = PlayerShootX != 0 && PlayerShootY != 0;	
-			int scale = is_diagonal ? 6 : 8;
-			PaintX += PlayerShootY * (i-2) * scale;
-			PaintY += -PlayerShootX * (i-2) * scale;
+			paint_shot_id = (paint_shot_id+1)&255;
+			for(int i=0; i<5; i++) {
+				int PaintX = PlayerX + PlayerShootX * 8 + 0;
+				int PaintY = PlayerY + PlayerShootY * 8 + 0;
 
-			// int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, int var3, int var4)
-			create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -10, 0, 0, paint_shot_id);
+				int is_diagonal = PlayerShootX != 0 && PlayerShootY != 0;	
+				int scale = is_diagonal ? 6 : 8;
+				PaintX += PlayerShootY * (i-2) * scale;
+				PaintY += -PlayerShootX * (i-2) * scale;
+
+				// int create_entity(int type, int px, int py, int vx, int vy, int var1, int var2, int var3, int var4)
+				create_entity(E_PLAYER_SHOT, PaintX, PaintY, PlayerShootX, PlayerShootY, -10, 0, 0, paint_shot_id);
+			}
 		}
 	}
 
@@ -205,6 +222,7 @@ void run_player() {
 
 	if(type_at_xy(PlayerX, PlayerY) == T_STAR) {
 		set_type_at_xy(PlayerX, PlayerY, T_FLOOR);
+		InkAmount = 255;
 	}
 
 }

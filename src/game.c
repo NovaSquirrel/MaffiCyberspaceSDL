@@ -12,6 +12,7 @@ void draw_player();
 // External variables
 extern int PlayerX;
 extern int PlayerY;
+extern int InkAmount;
 extern uint8_t test_level[];
 
 // Variables
@@ -138,4 +139,13 @@ void draw_game() {
 
 	draw_entities();
 	draw_player();
+
+	// Bottom status bar
+	SDL_SetRenderDrawColor(ScreenRenderer, 0, 0, 0, 255);
+	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, ScreenWidth/ScreenZoom, 8);
+	SDL_SetRenderDrawColor(ScreenRenderer, 0, 128, 0, 255);
+	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, 255/2, 8);
+	SDL_SetRenderDrawColor(ScreenRenderer, 0, 255, 0, 255);
+	rectfill(ScreenRenderer, 0, (ScreenHeight/ScreenZoom)-8, InkAmount/2, 8);
+
 }
